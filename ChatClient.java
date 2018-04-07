@@ -101,60 +101,86 @@ final class ChatClient {
         client.start();*/
 
         //my implementation: create a client with correct parameters
-        String server = null;
-        int port = 0;
-        String username = null;
+        /*String server = args[2];
+        int port = Integer.parseInt(args[1]);
+        String username = args[0];*/
 
-        ChatClient client = new ChatClient(server, port, username);
+        String server = "localhost";
+        int port = 1500;
+        String username = "Anonymous";
 
-        if(client.port == 0){
+        if(args.length == 1){
+            username = args[0];
+            System.out.println(args[0]);
+        }
+        else if(args.length == 2){
+            username = args[0];
+            port = Integer.parseInt(args[1]);
+            System.out.println(args[0] + " " + args[1]);
+        }
+        else if(args.length == 3){
+            username = args[0];
+            port = Integer.parseInt(args[1]);
+            server = args[2];
+            System.out.println(args[0] + " " + args[1] + " " + args[2]);
+        }
+
+        /*if (client.port == 0) {
             port = 1500;
         }
-        if(client.server == null){
+        if (client.server == null) {
             server = "localhost";
         }
-        if(client.username == null){
+        if (client.username == null) {
             username = "Anonymous";
-        }
+        }*/
 
-        client = new ChatClient(server, port, username);
+        ChatClient client = new ChatClient(server, port, username);
         client.start();
 
-        // Send an empty message to the server
-        //skeleton
-        //client.sendMessage(new ChatMessage());
-
-        //my implementation: TODO: part 2
         int msgType = 0;
         String msg = null;
         String recipient = null;
+        String[] fullMessage;
 
-        Scanner in = new Scanner(System.in);
-        System.out.print("> ");
-        msg = in.nextLine();
+        while(true) {
+            // Send an empty message to the server
+            //skeleton
+            //client.sendMessage(new ChatMessage());
 
-        if(msg.contains("/logout")){
-            msgType = 1;
-            try {
-                //close input/output/socket
-                client.sInput.close();
-                client.sOutput.close();
-                client.socket.close();
-            }catch(IOException e){
-                e.printStackTrace();
+            //my implementation: TODO: part 2
+            Scanner in = new Scanner(System.in);
+            System.out.print("> ");
+            msg = in.nextLine();
+
+            if (msg.contains("/logout")) {
+                msgType = 1;
+                try {
+                    //close input/output/socket
+                    client.sInput.close();
+                    client.sOutput.close();
+                    client.socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if (msg.contains("/msg")) {
+                msgType = 2;
+                fullMessage = msg.split(" ");
+
+                recipient = fullMessage[1];
+
+                msg = "";
+                for(int x = 2; x < fullMessage.length; x++){
+                    msg = msg + " " + fullMessage[x];
+                }
+            } else if (msg.contains("/list")) {
+                msgType = 3;
+            } else if (msg.contains("/ttt")) {
+                msgType = 4;
             }
-        }
-        else if(msg.contains("/msg")){
-            msgType = 2;
-        }
-        else if(msg.contains("/list")){
-            msgType = 3;
-        }
-        else if(msg.contains("/ttt")){
-            msgType = 4;
-        }
 
-        client.sendMessage(new ChatMessage(msgType, msg, recipient));
+            client.sendMessage(new ChatMessage(msgType, msg, recipient));
+        }
     }
 
     /*

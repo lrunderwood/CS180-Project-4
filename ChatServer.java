@@ -272,7 +272,10 @@ final class ChatServer {
                     }
                 }
             } catch (IOException | ClassNotFoundException e) {
-               e.printStackTrace();
+               //e.printStackTrace();
+                System.out.println(this.username + " has logged out.");
+                close();
+                remove(this.id);
             }
         }
 

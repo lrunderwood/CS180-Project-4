@@ -13,6 +13,7 @@ final class ChatServer {
     // Data structure to hold all of the connected clients
     private final List<ClientThread> clients = new ArrayList<>();
     private final int port;            // port the server is hosted on
+    private int count = 0;
 
     /**
      * ChatServer constructor
@@ -59,10 +60,10 @@ final class ChatServer {
      * @param //message  - the string to be sent
      * @param //username - the user the message will be sent to
      */
-    private synchronized void directMessage(String message, String username) {
+    private synchronized void directMessage(String message, String username, String userSending) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         String time = sdf.format(new Date());
-        String formattedMessage = time + " " + message + "\n";
+        String formattedMessage = time  + " " + userSending + ": " + message + "\n";
         System.out.print(formattedMessage);
 
         for (ClientThread clientThread : clients) {
@@ -81,7 +82,6 @@ final class ChatServer {
     public static void main(String[] args) {
         ChatServer server = new ChatServer(1500);
         server.start();
-
     }
 
 
@@ -136,28 +136,95 @@ final class ChatServer {
 
 
             try {
-                cm = (ChatMessage) sInput.readObject();
+                while (true) {
+                    writeMessage("> ");
+                    cm = (ChatMessage) sInput.readObject();
+                    //my implementation
+                    if (cm.getMsgType() == 1) {
+                        System.out.println("case 1");
+                        close();
+                        remove(this.id);
+                    } else if (cm.getMsgType() == 2) {
+                        directMessage(cm.getMsg(), cm.getRecipient(), this.username);
+                    } else if (cm.getMsgType() == 3) {
+                        writeMessage("List of users:\n");
+                        for (int x = 0; x < clients.size(); x++) {
+                            if (clients.get(x).username == this.username) {
+                            } else {
+                                writeMessage(clients.get(x).username + "\n");
+                            }
+                        }
+                    } else if (cm.getMsgType() == 4) {
+                        //TODO: CALL PART 3
+                        //FIND RECIPIENT
+                        int recipientIndex = 0;
+                        for (int x = 0; x < clients.size(); x++) {
+                            if (clients.get(x).username.equals(cm.getRecipient())) {
+                                recipientIndex = x;
+                                System.out.println(recipientIndex);
+                                break;
+                            }
+                        }
+
+                        TicTacToeGame game = new TicTacToeGame(this.username, cm.getRecipient(), true);
+                        if (count == 0) {
+                            writeMessage("Started TicTacToe with " + cm.getRecipient());
+                            clients.get(recipientIndex).writeMessage(this.username + " has started TicTacToe with you.");
+
+                            //initialize array
+                            game.initialize();
+                            count++;
+                        }
+
+                        //display tic tac toe board
+                        int move = 0;
+
+                        //display board
+                        writeMessage("\n");
+                        writeMessage("----------\n");
+                        for (int x = 0; x < game.getArray().length; x++) {
+                            for (int y = 0; y < game.getArray().length; y++) {
+                                if (y == 2) {
+                                    writeMessage(game.getArray()[x][y] + "");
+                                } else {
+                                    writeMessage(game.getArray()[x][y] + " | ");
+                                }
+                            }
+                            writeMessage("\n");
+                            writeMessage("----------\n");
+                        }
+
+               /* try {
+                        writeMessage("Your turn: ");
+                        move = (String) sInput.readObject();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }*/
+
+                        game.playGame(move);
+
+                        if (game.playerXCheck() == true) {
+                            writeMessage("PLAYER X WINS!");
+                            clients.get(recipientIndex).writeMessage("PLAYER X WINS!");
+                            count = 0;
+                        } else if (game.playerOCheck() == true) {
+                            writeMessage("PLAYER O WINS!");
+                            clients.get(recipientIndex).writeMessage("PLAYER O WINS!");
+                            count = 0;
+                        } else if (game.isTied() == true) {
+                            writeMessage("TIE GAME!");
+                            clients.get(recipientIndex).writeMessage("TIE GAME!");
+                            count = 0;
+                        }
+
+                    } else {
+                        broadcast(cm.getMsg() + "\n");
+                    }
+                }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
-            }
-
-            //my implementation
-            if (cm.getMsgType() == 1) {
-                System.out.println("case 1");
-            } else if (cm.getMsgType() == 2) {
-                System.out.println("case 2");
-                directMessage(cm.getMsg(), cm.getRecipient());
-            } else if (cm.getMsgType() == 3) {
-                System.out.println("case 3");
-                close();
-            } else if (cm.getMsgType() == 4) {
-                System.out.println("case 4");
-                //TODO: CALL PART 3
-                //TODO: SEND MESSAGE TO CM.RECIPIENT
-                TicTacToeGame game = new TicTacToeGame(cm.getRecipient(), false);
-
-            } else {
-                broadcast(cm.getMsg());
             }
         }
 
@@ -187,8 +254,8 @@ final class ChatServer {
         }
 
         private synchronized void remove(int id) {
-            for(int x = 0; x < clients.size(); x++) {
-                if(clients.get(x).id == id){
+            for (int x = 0; x < clients.size(); x++) {
+                if (clients.get(x).id == id) {
                     clients.remove(x);
                 }
             }

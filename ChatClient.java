@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Scanner;
 
 final class ChatClient {
@@ -101,10 +102,6 @@ final class ChatClient {
         client.start();*/
 
         //my implementation: create a client with correct parameters
-        /*String server = args[2];
-        int port = Integer.parseInt(args[1]);
-        String username = args[0];*/
-
         String server = "localhost";
         int port = 1500;
         String username = "Anonymous";
@@ -125,16 +122,6 @@ final class ChatClient {
             System.out.println(args[0] + " " + args[1] + " " + args[2]);
         }
 
-        /*if (client.port == 0) {
-            port = 1500;
-        }
-        if (client.server == null) {
-            server = "localhost";
-        }
-        if (client.username == null) {
-            username = "Anonymous";
-        }*/
-
         ChatClient client = new ChatClient(server, port, username);
         client.start();
 
@@ -150,7 +137,7 @@ final class ChatClient {
 
             //my implementation: TODO: part 2
             Scanner in = new Scanner(System.in);
-            System.out.print("> ");
+            //System.out.print("> ");
             msg = in.nextLine();
 
             if (msg.contains("/logout")) {
@@ -177,6 +164,10 @@ final class ChatClient {
                 msgType = 3;
             } else if (msg.contains("/ttt")) {
                 msgType = 4;
+
+                fullMessage = msg.split(" ");
+
+                recipient = fullMessage[1];
             }
 
             client.sendMessage(new ChatMessage(msgType, msg, recipient));

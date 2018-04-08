@@ -18,6 +18,7 @@ public class TicTacToeGame {
     private String[] player;
     private String playerO;
     private String playerX;
+    public String currentPlayer;
     private int turns = 0; //turns taken
 
     // TODO 4: Implement necessary methods to manage the games of Tic Tac Toe
@@ -26,6 +27,7 @@ public class TicTacToeGame {
         this.playerO = otherPlayer;
         this.playerX = thisPlayer;
         this.player = new String[]{playerX, playerO};
+        this.currentPlayer = this.playerX;
     }
 
     private char[][] tttArray = new char[3][3];
@@ -58,6 +60,7 @@ public class TicTacToeGame {
 
             if (tttArray[row][col] != 'X' && tttArray[row][col] != 'O') {
                 tttArray[row][col] = 'X';
+                currentPlayer = playerO;
             }
         }
         else{
@@ -72,6 +75,7 @@ public class TicTacToeGame {
 
             if (tttArray[row][col] != 'X' && tttArray[row][col] != 'O') {
                 tttArray[row][col] = 'O';
+                currentPlayer = playerX;
             }
         }
         this.turns++;

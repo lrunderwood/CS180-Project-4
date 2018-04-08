@@ -3,6 +3,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.text.ParseException;
 import java.util.Scanner;
 
 final class ChatClient {
@@ -14,6 +15,7 @@ final class ChatClient {
     private final String username;
     private final int port;
 
+    private int error = 0;
     /* ChatClient constructor
      * @param server - the ip address of the server as a string
      * @param port - the port number the server is hosted on
@@ -34,7 +36,8 @@ final class ChatClient {
         try {
             socket = new Socket(server, port);
         } catch (IOException e) {
-            e.printStackTrace();
+                System.out.println("Exception connecting to socket: java.net.ConnectException: Connection refused: connect\nClient could not be started");
+                System.exit(0);
             return false;
         }
 
@@ -108,22 +111,23 @@ final class ChatClient {
 
         if(args.length == 1){
             username = args[0];
-            System.out.println(args[0]);
         }
         else if(args.length == 2){
             username = args[0];
             port = Integer.parseInt(args[1]);
-            System.out.println(args[0] + " " + args[1]);
         }
         else if(args.length == 3){
             username = args[0];
             port = Integer.parseInt(args[1]);
             server = args[2];
-            System.out.println(args[0] + " " + args[1] + " " + args[2]);
         }
 
         ChatClient client = new ChatClient(server, port, username);
         client.start();
+
+        //if(client.start()) {
+            System.out.println("Connection accepted " + server + "/" + port);
+        //}
 
         int msgType = 0;
         String msg = null;
@@ -136,6 +140,7 @@ final class ChatClient {
             //client.sendMessage(new ChatMessage());
 
             //my implementation: TODO: part 2
+            System.out.print("> ");
             Scanner in = new Scanner(System.in);
             //System.out.print("> ");
             msg = in.nextLine();
@@ -147,6 +152,7 @@ final class ChatClient {
                     client.sInput.close();
                     client.sOutput.close();
                     client.socket.close();
+                    System.exit(0);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -156,6 +162,7 @@ final class ChatClient {
 
                 recipient = fullMessage[1];
 
+                //make message the text that the user would like to send
                 msg = "";
                 for(int x = 2; x < fullMessage.length; x++){
                     msg = msg + " " + fullMessage[x];
@@ -168,6 +175,12 @@ final class ChatClient {
                 fullMessage = msg.split(" ");
 
                 recipient = fullMessage[1];
+
+                //make message the player's move
+                msg = "";
+                for(int x = 2; x < fullMessage.length; x++){
+                    msg = msg + " " + fullMessage[x];
+                }
             }
 
             client.sendMessage(new ChatMessage(msgType, msg, recipient));
@@ -181,16 +194,16 @@ final class ChatClient {
      */
     private final class ListenFromServer implements Runnable {
         public void run() {
-            while(true) {
                 try {
-                    //my implementation: keeps client in infinite loop
-                    String msg = (String) sInput.readObject();
-                    System.out.print(msg);
+                    while(true) {
+                        //my implementation: keeps client in infinite loop
+                        String msg = (String) sInput.readObject();
+                        System.out.print(msg);
+                    }
 
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
-            }
         }
     }
 }

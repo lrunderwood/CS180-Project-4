@@ -1,8 +1,10 @@
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,6 +16,8 @@ final class ChatServer {
     private final List<ClientThread> clients = new ArrayList<>();
     private final int port;            // port the server is hosted on
     private int count = 0;
+    private TicTacToeGame game = null;
+    private ServerSocket serverSocket = null;
 
     /**
      * ChatServer constructor
@@ -22,6 +26,11 @@ final class ChatServer {
      */
     private ChatServer(int port) {
         this.port = port;
+        try {
+            serverSocket = new ServerSocket(port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /*
@@ -30,7 +39,7 @@ final class ChatServer {
      */
     private void start() {
         try {
-            ServerSocket serverSocket = new ServerSocket(port);
+            //ServerSocket serverSocket = new ServerSocket(port);
             //skeleton
             /*Socket socket = serverSocket.accept();
             Runnable r = new ClientThread(socket, uniqueId++);
@@ -38,14 +47,23 @@ final class ChatServer {
             clients.add((ClientThread) r);
             t.start();*/
 
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+            String time = sdf.format(new Date());
+            System.out.println(time + " Server waiting for clients on port " + this.port + ".");
             //my implementation: keeps server in infinite loop
             while (true) {
                 Socket socket = serverSocket.accept();
                 // server waits until a client opens a Socket with the same address and port number
                 Runnable r = new ClientThread(socket, uniqueId++);
-                Thread t = new Thread(r);
-                clients.add((ClientThread) r);
-                t.start();
+
+                if(socket.isClosed()){
+                    uniqueId--;
+                }
+                else{
+                    Thread t = new Thread(r);
+                    clients.add((ClientThread) r);
+                    t.start();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -66,22 +84,35 @@ final class ChatServer {
         String formattedMessage = time  + " " + userSending + ": " + message + "\n";
         System.out.print(formattedMessage);
 
-        for (ClientThread clientThread : clients) {
-            if (clientThread.username.equalsIgnoreCase(username)) {
-                clientThread.writeMessage(formattedMessage);
+        if(!username.equalsIgnoreCase(userSending)) {
+            for (ClientThread clientThread : clients) {
+                if (clientThread.username.equalsIgnoreCase(username)) {
+                    clientThread.writeMessage(formattedMessage);
+                }
+            }
+        }
+        else{
+            for (ClientThread clientThread : clients) {
+                if (clientThread.username.equalsIgnoreCase(username)) {
+                    clientThread.writeMessage("You cannot send a Direct Message to yourself.\n");
+                }
             }
         }
     }
 
-
-    /*
-     *  > java ChatServer
-     *  > java ChatServer portNumber
-     *  If the port number is not specified 1500 is used
-     */
     public static void main(String[] args) {
-        ChatServer server = new ChatServer(1500);
+        int port = 1500;
+
+        //switch port to a different value if one is passed
+        if(args.length == 1){
+            port = Integer.parseInt(args[0]);
+        }
+
+        ChatServer server = new ChatServer(port);
         server.start();
+    }
+    public int getPort(){
+        return this.port;
     }
 
 
@@ -108,6 +139,21 @@ final class ChatServer {
                 sOutput = new ObjectOutputStream(socket.getOutputStream());
                 sInput = new ObjectInputStream(socket.getInputStream());
                 username = (String) sInput.readObject();
+
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                String time = sdf.format(new Date());
+                System.out.println(time + " " + this.username + " just connected.");
+
+                for (int x = 0; x < clients.size(); x++) {
+                    if (clients.get(x).username.equalsIgnoreCase(this.username)) {
+                        this.writeMessage("This client is already connected to the server.");
+                        this.socket.close();
+                        this.sOutput.close();
+                        this.sInput.close();
+                        remove(x);
+                        break;
+                    }
+                }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -136,12 +182,12 @@ final class ChatServer {
 
 
             try {
-                while (true) {
+                while(true) {
                     writeMessage("> ");
                     cm = (ChatMessage) sInput.readObject();
                     //my implementation
                     if (cm.getMsgType() == 1) {
-                        System.out.println("case 1");
+                        System.out.println(this.username + " has logged out.");
                         close();
                         remove(this.id);
                     } else if (cm.getMsgType() == 2) {
@@ -155,68 +201,70 @@ final class ChatServer {
                             }
                         }
                     } else if (cm.getMsgType() == 4) {
-                        //TODO: CALL PART 3
                         //FIND RECIPIENT
                         int recipientIndex = 0;
                         for (int x = 0; x < clients.size(); x++) {
                             if (clients.get(x).username.equals(cm.getRecipient())) {
                                 recipientIndex = x;
-                                System.out.println(recipientIndex);
                                 break;
                             }
                         }
 
-                        TicTacToeGame game = new TicTacToeGame(this.username, cm.getRecipient(), true);
                         if (count == 0) {
-                            writeMessage("Started TicTacToe with " + cm.getRecipient());
-                            clients.get(recipientIndex).writeMessage(this.username + " has started TicTacToe with you.");
+                            game = new TicTacToeGame(this.username, cm.getRecipient(), true);
+                            writeMessage("Started TicTacToe with " + cm.getRecipient() + "\n");
+                            clients.get(recipientIndex).writeMessage("\n" + this.username + " has started TicTacToe with you." + "\n");
 
                             //initialize array
                             game.initialize();
                             count++;
                         }
+                        else {
+                            if(game.currentPlayer.equals(this.username)) {
+                                try {
+                                    int move = Integer.parseInt(cm.getMsg().trim());
+                                    game.playGame(move);
+                                }catch(Exception e){
+                                    writeMessage("Invalid move");
+                                }
+                                //display board
+                                writeMessage("\n");
+                                writeMessage("----------\n");
+                                for (int x = 0; x < game.getArray().length; x++) {
+                                    for (int y = 0; y < game.getArray().length; y++) {
+                                        if (y == 2) {
+                                            writeMessage(game.getArray()[x][y] + "");
+                                        } else {
+                                            writeMessage(game.getArray()[x][y] + " | ");
+                                        }
+                                    }
+                                    writeMessage("\n");
+                                    writeMessage("----------\n");
+                                }
 
-                        //display tic tac toe board
-                        int move = 0;
-
-                        //display board
-                        writeMessage("\n");
-                        writeMessage("----------\n");
-                        for (int x = 0; x < game.getArray().length; x++) {
-                            for (int y = 0; y < game.getArray().length; y++) {
-                                if (y == 2) {
-                                    writeMessage(game.getArray()[x][y] + "");
-                                } else {
-                                    writeMessage(game.getArray()[x][y] + " | ");
+                                if (game.playerXCheck() == true) {
+                                    writeMessage("PLAYER X WINS!\n");
+                                    clients.get(recipientIndex).writeMessage("PLAYER X WINS!\n");
+                                    count = 0;
+                                    game = null;
+                                    break;
+                                } else if (game.playerOCheck() == true) {
+                                    writeMessage("PLAYER O WINS!\n");
+                                    clients.get(recipientIndex).writeMessage("PLAYER O WINS!\n");
+                                    count = 0;
+                                    game = null;
+                                    break;
+                                } else if (game.isTied() == true) {
+                                    writeMessage("TIE GAME!\n");
+                                    clients.get(recipientIndex).writeMessage("TIE GAME!\n");
+                                    count = 0;
+                                    game = null;
+                                    break;
                                 }
                             }
-                            writeMessage("\n");
-                            writeMessage("----------\n");
-                        }
-
-               /* try {
-                        writeMessage("Your turn: ");
-                        move = (String) sInput.readObject();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }*/
-
-                        game.playGame(move);
-
-                        if (game.playerXCheck() == true) {
-                            writeMessage("PLAYER X WINS!");
-                            clients.get(recipientIndex).writeMessage("PLAYER X WINS!");
-                            count = 0;
-                        } else if (game.playerOCheck() == true) {
-                            writeMessage("PLAYER O WINS!");
-                            clients.get(recipientIndex).writeMessage("PLAYER O WINS!");
-                            count = 0;
-                        } else if (game.isTied() == true) {
-                            writeMessage("TIE GAME!");
-                            clients.get(recipientIndex).writeMessage("TIE GAME!");
-                            count = 0;
+                            else{
+                                writeMessage("It is currently the other player's turn.");
+                            }
                         }
 
                     } else {
@@ -224,7 +272,7 @@ final class ChatServer {
                     }
                 }
             } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
+               e.printStackTrace();
             }
         }
 
@@ -241,7 +289,7 @@ final class ChatServer {
         }
 
         private boolean writeMessage(String msg) {
-            if (socket.isConnected()) { //TODO: this line might be wrong
+            if (socket.isConnected()) {
                 try {
                     sOutput.writeObject(msg);
                 } catch (IOException e) {

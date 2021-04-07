@@ -99,12 +99,10 @@ final class ChatClient {
     public static void main(String[] args) {
         // Get proper arguments and override defaults
 
-        // Create your client and start it
-        //skeleton
+        // Create client and start it
        /* ChatClient client = new ChatClient("localhost", 1500, "CS 180 Student");
         client.start();*/
-
-        //my implementation: create a client with correct parameters
+        
         String server = "localhost";
         int port = 1500;
         String username = "Anonymous";
@@ -136,7 +134,6 @@ final class ChatClient {
 
         while(true) {
             // Send an empty message to the server
-            //skeleton
             //client.sendMessage(new ChatMessage());
 
             //my implementation: TODO: part 2

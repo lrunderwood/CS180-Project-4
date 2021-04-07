@@ -34,9 +34,8 @@ final class ChatServer {
     }
 
     /*
-     * This is what starts the ChatServer.
-     * Right now it just creates the socketServer and adds a new ClientThread to a list to be handled
-     */
+     * starts the ChatServer.
+    */
     private void start() {
         try {
             //ServerSocket serverSocket = new ServerSocket(port);
@@ -70,14 +69,6 @@ final class ChatServer {
         }
     }
 
-    /**
-     * Sample code to use as a reference for Tic Tac Toe
-     * <p>
-     * directMessage - sends a message to a specific username, if connected
-     *
-     * @param //message  - the string to be sent
-     * @param //username - the user the message will be sent to
-     */
     private synchronized void directMessage(String message, String username, String userSending) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         String time = sdf.format(new Date());
@@ -159,12 +150,9 @@ final class ChatServer {
             }
         }
 
-        /*
-         * This is what the client thread actually runs.
-         */
         @Override
         public void run() {
-            // Read the username sent to you by client
+            // Read the username sent by client
             /*try {
                 cm = (ChatMessage) sInput.readObject();
             } catch (IOException | ClassNotFoundException e) {
@@ -279,7 +267,6 @@ final class ChatServer {
             }
         }
 
-        //TODO: PART 3
         private synchronized void broadcast(String message) {
             SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
             Date date = new Date();
